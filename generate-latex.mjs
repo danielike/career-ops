@@ -41,6 +41,13 @@ const REQUIRED_COMMANDS = [
   '\\\\resumeProjectHeading',
 ];
 
+// Awesome-CV specific validation
+const AWESOME_CV_CLASS_RE = /\\documentclass\s*\[.*?\]\s*\{.*?awesome-cv.*?\}/s;
+const AWESOME_REQUIRED = [
+  '\\\\cvsection',
+  '\\\\cventry',
+];
+
 // Proper Unicode script test (not a hand-picked codepoint range) so
 // supplementary-plane ideographs (CJK Unified Ideographs Extension B and
 // later, e.g. U+20000+) are covered, not just the BMP. Needs the `u` flag --
@@ -121,9 +128,14 @@ export function validateLatexContent(content, compileOnly, engine = null) {
     };
   }
 
-  const sectionCount = (content.match(/\\section\{/g) || []).length;
-  if (sectionCount < MIN_SECTIONS) {
-    issues.push(`Expected at least ${MIN_SECTIONS} \\section{} blocks (Education, Work Experience, Projects, Skills — or localized equivalents), found ${sectionCount}`);
+  // Detect which template family is in use (needed for section count, CJK, and command checks below)
+  const isAwesomeCv = AWESOME_CV_CLASS_RE.test(content);
+
+  if (!isAwesomeCv) {
+    const sectionCount = (content.match(/\\section\{/g) || []).length;
+    if (sectionCount < MIN_SECTIONS) {
+      issues.push(`Expected at least ${MIN_SECTIONS} \\section{} blocks (Education, Work Experience, Projects, Skills — or localized equivalents), found ${sectionCount}`);
+    }
   }
 
   if (CJK_RE.test(content)) {
@@ -132,15 +144,25 @@ export function validateLatexContent(content, compileOnly, engine = null) {
       // tectonic's backend is XeTeX, so fontspec/xeCJK (loaded by
       // templates/cv-template.cjk.tex) can render CJK glyphs — no issue.
     } else if (engine === 'tectonic') {
-      issues.push('CJK characters detected but no CJK package (xeCJK/ctex) is loaded. Generate from the CJK-aware template instead: `node build-cv-latex.mjs <input.json> <output.tex> --template=cjk` (templates/cv-template.cjk.tex), or use `pdf` mode (HTML to PDF, which renders CJK) for these CVs.');
+      if (!isAwesomeCv) {
+        issues.push('CJK characters detected but no CJK package (xeCJK/ctex) is loaded. Generate from the CJK-aware template instead: `node build-cv-latex.mjs <input.json> <output.tex> --template=cjk` (templates/cv-template.cjk.tex), or use `pdf` mode (HTML to PDF, which renders CJK) for these CVs.');
+      }
     } else {
       issues.push(`CJK characters detected. This CJK-aware LaTeX path needs a XeTeX-based engine (fontspec/xeCJK) — pdfLaTeX cannot compile it. Install tectonic (\`${INSTALL_HINT}\`, one-time download) and regenerate from the CJK-aware template (\`--template=cjk\`), or use \`pdf\` mode (HTML to PDF, which renders CJK) for these CVs.`);
     }
   }
 
-  for (const cmd of REQUIRED_COMMANDS) {
-    if (!new RegExp(cmd).test(content)) {
-      issues.push(`Missing command: ${cmd}`);
+  if (isAwesomeCv) {
+    for (const cmd of AWESOME_REQUIRED) {
+      if (!new RegExp(cmd).test(content)) {
+        issues.push(`Missing command: ${cmd}`);
+      }
+    }
+  } else {
+    for (const cmd of REQUIRED_COMMANDS) {
+      if (!new RegExp(cmd).test(content)) {
+        issues.push(`Missing command: ${cmd}`);
+      }
     }
   }
 
@@ -157,7 +179,10 @@ export function validateLatexContent(content, compileOnly, engine = null) {
   }
 
   if (!content.includes('\\pdfgentounicode=1')) {
-    issues.push('Missing \\pdfgentounicode=1 (ATS compatibility)');
+    // Awesome-CV does not use \pdfgentounicode=1 (it uses fontspec/XeTeX)
+    if (!isAwesomeCv) {
+      issues.push('Missing \\pdfgentounicode=1 (ATS compatibility)');
+    }
   }
 
   return {
@@ -217,7 +242,10 @@ export async function compileLatexFile(absPath, content, outputPath, compileOnly
   report.engine = engine;
 
   let compilePath = absPath;
+  let tectonicExtra = [];
   if (engine === 'tectonic') {
+    // tectonic auto-detects xelatex from !TEX TS-program comment in the template;
+    // fontspec/XeTeX are needed for Awesome-CV, and the template header says so.
     const patched = content
       .replace(/\\pdfgentounicode\s*=\s*\d+[^\n]*\n?/g, '')
       .replace(/\\input\{glyphtounicode\}[^\n]*\n?/g, '');
@@ -227,7 +255,7 @@ export async function compileLatexFile(absPath, content, outputPath, compileOnly
 
   try {
     if (engine === 'tectonic') {
-      execFileSync(resolvedEngineBin || 'tectonic', ['--outdir', texDir, compilePath], {
+      execFileSync(resolvedEngineBin || 'tectonic', [compilePath, '-o', texDir, ...tectonicExtra], {
         cwd: texDir,
         stdio: 'pipe',
         timeout: 120_000,

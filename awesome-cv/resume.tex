@@ -1,0 +1,66 @@
+%!TEX TS-program = xelatex
+%!TEX encoding = UTF-8 Unicode
+% Career-Ops Awesome CV Template
+% Based on: Awesome-CV (https://github.com/posquit0/Awesome-CV)
+% License: CC BY-SA 4.0
+
+\documentclass[]{awesome-cv}
+\usepackage{textcomp}
+
+% Font directory (relative to this .tex file)
+\fontdir[fonts/]
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     Profile
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+	\headerfirstnamestyle{{NAME_FIRST}} \headerlastnamestyle{{NAME_LAST}} \\
+	\vspace{2mm}
+	{\hspace{0.8cm}\faEnvelope\ {{EMAIL}}} ~|~ {\faMobile\ {{PHONE}}} ~|~ {\faMapMarker\ {{LOCATION}}} \\
+	\small
+	{\faLink\ \href{{{LINKEDIN_URL}}}{\underline{{{LINKEDIN_DISPLAY}}}}} ~|~ {\faGithub\ \href{{{GITHUB_URL}}}{\underline{{{GITHUB_DISPLAY}}}}}
+\end{center}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     Skills
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cvsection{Skills}
+\begin{cventries}
+	\cventry
+	{}
+	{\def\arraystretch{1.15}{\begin{tabular}{ l l }
+		{{SKILLS_TABULAR}}
+		\end{tabular}}}
+	{}
+	{}
+	{}
+\end{cventries}
+\vspace{-7mm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     Experience
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cvsection{Experience}
+\begin{cventries}
+{{EXPERIENCE_CVENTRY}}
+\end{cventries}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     Projects
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cvsection{Projects}
+\begin{cventries}
+{{PROJECTS_CVENTRY}}
+\end{cventries}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     Education
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cvsection{Education}
+\begin{cventries}
+{{EDUCATION_CVENTRY}}
+\end{cventries}
+
+\end{document}
